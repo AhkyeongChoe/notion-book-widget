@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  < title>Notion Book Widget</title>
+  <title>Notion Book Widget</title>
 </head>
 <body>
   <h2>📚 책 검색</h2>
@@ -13,24 +13,51 @@
   <div id="result"></div>
 
   <script>
-    async function search() {
-      const q = document.getElementById("query").value;
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}`
-      );
-      const data = await res.json();
-      const book = data.items[0].volumeInfo;
+  async function search() {
+    const q = document.getElementById("query").value;
 
-      document.getElementById("result").innerHTML = `
-        <h3>${book.title}</h3>
-        <p>${book.authors?.join(", ")}</p>
-        <img src="${book.imageLinks?.thumbnail}" />
-        <br/>
-        <button onclick='addBook(${JSON.stringify(book)})'>
-          노션에 추가
-        </button>
-      `;
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10`
+    );
+    const data = await res.json();
+
+    const results = document.getElementById("result");
+    results.innerHTML = "";
+
+    if (!data.items || data.items.length === 0) {
+      results.innerHTML = "<p>검색 결과가 없습니다.</p>";
+      return;
     }
+
+    data.items.slice(0, 10).forEach(item => {
+      const book = item.volumeInfo;
+
+      const title = book.title || "제목 없음";
+      const authors = book.authors?.join(", ") || "저자 정보 없음";
+      const thumbnail = book.imageLinks?.thumbnail || "";
+
+      const div = document.createElement("div");
+      div.style.border = "1px solid #ddd";
+      div.style.padding = "8px";
+      div.style.marginBottom = "8px";
+
+      div.innerHTML = `
+        <strong>${title}</strong><br/>
+        <small>${authors}</small><br/>
+        ${thumbnail ? `<img src="${thumbnail}" />` : ""}
+        <br/>
+        <button>노션에 추가</button>
+      `;
+
+      div.querySelector("button").onclick = () => addBook({
+        title,
+        authors,
+        thumbnail
+      });
+
+      results.appendChild(div);
+    });
+  }
 
     async function addBook(book) {
       await fetch("/api/addBook", {
