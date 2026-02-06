@@ -18,7 +18,6 @@ export default async function handler(req, res) {
           database_id: process.env.DATABASE_ID
         },
         properties: {
-          // ⚠️ 여기 Name은 노션 DB의 Title 속성 이름이랑 같아야 함
           Name: {
             title: [
               {
@@ -36,15 +35,22 @@ export default async function handler(req, res) {
                 }
               }
             ]
+          },
+          // 🆕 Files & media 속성 추가
+          Cover: {
+            files: book.thumbnail
+              ? [
+                  {
+                    name: "Book Cover",
+                    type: "external",
+                    external: {
+                      url: book.thumbnail
+                    }
+                  }
+                ]
+              : []
           }
-        },
-        cover: book.thumbnail
-          ? {
-              external: {
-                url: book.thumbnail
-              }
-            }
-          : undefined
+        }
       })
     });
 
