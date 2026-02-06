@@ -1,47 +1,26 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  < title>Notion Book Widget</title>
-</head>
-<body>
-  <h2>📚 책 검색</h2>
+<script>
+  async function add() {
+    const title = document.getElementById("title").value;
 
-  <input id="query" placeholder="책 제목 입력" />
-  <button onclick="search()">검색</button>
-
-  <div id="result"></div>
-
-  <script>
-    async function search() {
-      const q = document.getElementById("query").value;
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}`
-      );
-      const data = await res.json();
-      const book = data.items[0].volumeInfo;
-
-      document.getElementById("result").innerHTML = `
-        <h3>${book.title}</h3>
-        <p>${book.authors?.join(", ")}</p>
-        <img src="${book.imageLinks?.thumbnail}" />
-        <br/>
-        <button onclick='addBook(${JSON.stringify(book)})'>
-          노션에 추가
-        </button>
-      `;
-    }
-
-    async function addBook(book) {
-      await fetch("/api/addBook", {
+    try {
+      const res = await fetch("/api/addItem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(book)
+        body: JSON.stringify({ title })
       });
-      alert("노션에 추가됨!");
-    }
-  </script>
 
-  <small>Powered by Google Books</small>
-</body>
-</html>
+      const data = await res.json();
+      console.log("API response:", data);
+
+      if (!res.ok) {
+        alert("API 에러 발생 (콘솔 확인)");
+        return;
+      }
+
+      alert("DB에 추가됨!");
+    } catch (e) {
+      console.error(e);
+      alert("요청 실패");
+    }
+  }
+</script>
