@@ -36,21 +36,39 @@ export default async function handler(req, res) {
               }
             ]
           },
-        }
+          Publisher: {
+            rich_text: [
+              {
+                text: {
+                  content: book.publisher || ""
+                }
+              }
+            ]
+          },
+          Published: {
+            rich_text: [
+              {
+                text: {
+                  content: book.publishedDate || ""
+                }
+              }
+            ]
+          }
+        },
         children: book.thumbnail
-            ? [
-                {
-                  object: "block",
-                  type: "image",
-                  image: {
-                    type: "external",
-                    external: {
-                      url: book.thumbnail
-                    }
+          ? [
+              {
+                object: "block",
+                type: "image",
+                image: {
+                  type: "external",
+                  external: {
+                    url: book.thumbnail
                   }
                 }
-              ]
-            : []
+              }
+            ]
+          : []
       })
     });
 
