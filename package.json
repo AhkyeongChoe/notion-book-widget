@@ -1,0 +1,10 @@
+{
+  "name": "notion-book-widget",
+  "version": "1.0.0",
+  "description": "Notion Book Search Widget",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
