@@ -94,9 +94,15 @@
       color: #666;
     }
 
+    .hint {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+
     small {
       display: block;
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 11px;
       color: #888;
     }
@@ -104,69 +110,106 @@
 </head>
 
 <body>
-  <h2>📚 책 검색</h2>
+  
+
   <input
     id="query"
-    placeholder="책 제목 입력"
+    placeholder="책 제목이나 저자 입력"
     autocomplete="off"
   />
+
+  <div class="hint">입력을 멈추면 자동으로 검색돼요</div>
 
   <div id="result"></div>
 
   <script>
+    // ======================
+    // 자동 검색 (debounce)
+    // ======================
+    const input = document.getElementById("query");
+    const results = document.getElementById("result");
+    let searchTimer = null;
+
+    input.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(search, 400);
+    });
+
+    // ======================
+    // Google Books 검색
+    // ======================
     async function search() {
-      const q = document.getElementById("query").value;
-      const res = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10`
-      );
-      const data = await res.json();
+      const q = input.value.trim();
 
-      const results = document.getElementById("result");
-      results.innerHTML = "";
-
-      if (!data.items) {
-        results.innerHTML = "<p>검색 결과가 없습니다.</p>";
+      if (q.length < 2) {
+        results.innerHTML = "";
         return;
       }
 
-      data.items.forEach(item => {
-        const book = item.volumeInfo;
+      results.innerHTML =
+        "<p style='font-size:12px;color:#888'>검색 중…</p>";
 
-        const title = book.title || "제목 없음";
-        const authors = book.authors?.join(", ") || "저자 정보 없음";
-        const publisher = book.publisher || "출판사 정보 없음";
-        const publishedDate = book.publishedDate || "";
-        const thumbnail = book.imageLinks?.thumbnail || "";
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+            q
+          )}&maxResults=10`
+        );
+        const data = await res.json();
 
-        const div = document.createElement("div");
-        div.className = "book-card";
+        results.innerHTML = "";
 
-        div.innerHTML = `
-          <div class="book-cover">
-            ${thumbnail ? `<img src="${thumbnail}" />` : ""}
-          </div>
-          <div class="book-info">
-            <div class="book-title">${title}</div>
-            <div class="book-meta">${authors}</div>
-            <div class="book-meta">${publisher} · ${publishedDate}</div>
-          </div>
-        `;
+        if (!data.items) {
+          results.innerHTML =
+            "<p style='font-size:12px;color:#888'>검색 결과가 없습니다.</p>";
+          return;
+        }
 
-        // ⭐ 표지 클릭 → 자동으로 노션에 추가
-        div.querySelector(".book-cover").onclick = () => {
-          addBook({
-            title,
-            authors,
-            publisher,
-            publishedDate,
-            thumbnail
-          });
-        };
+        data.items.forEach(item => {
+          const book = item.volumeInfo;
 
-        results.appendChild(div);
-      });
+          const title = book.title || "제목 없음";
+          const authors = book.authors?.join(", ") || "저자 정보 없음";
+          const publisher = book.publisher || "출판사 정보 없음";
+          const publishedDate = book.publishedDate || "";          const thumbnail = book.imageLinks?.thumbnail || "";
+
+          const card = document.createElement("div");
+          card.className = "book-card";
+
+          card.innerHTML = `
+            <div class="book-cover">
+              ${thumbnail ? `<img src="${thumbnail}" />` : ""}
+            </div>
+            <div class="book-info">
+              <div class="book-title">${title}</div>
+              <div class="book-meta">${authors}</div>
+              <div class="book-meta">${publisher} · ${publishedDate}</div>
+            </div>
+          `;
+
+          // 표지 클릭 → 노션에 자동 추가
+          card.querySelector(".book-cover").onclick = () => {
+            addBook({
+              title,
+              authors,
+              publisher,
+              publishedDate,
+              thumbnail
+            });
+          };
+
+          results.appendChild(card);
+        });
+      } catch (e) {
+        console.error(e);
+        results.innerHTML =
+          "<p style='font-size:12px;color:#888'>검색 중 오류가 발생했어요.</p>";
+      }
     }
 
+    // ======================
+    // Notion에 추가
+    // ======================
     async function addBook(book) {
       const res = await fetch("/api/addBook", {
         method: "POST",
