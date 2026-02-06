@@ -36,21 +36,21 @@ export default async function handler(req, res) {
               }
             ]
           },
-          // 🆕 Files & media 속성 추가
-          Cover: {
-            files: book.thumbnail
-              ? [
-                  {
-                    name: "Book Cover",
+        }
+        children: book.thumbnail
+            ? [
+                {
+                  object: "block",
+                  type: "image",
+                  image: {
                     type: "external",
                     external: {
                       url: book.thumbnail
                     }
                   }
-                ]
-              : []
-          }
-        }
+                }
+              ]
+            : []
       })
     });
 
