@@ -49,15 +49,15 @@
         <button>노션에 추가</button>
       `;
 
-      div.querySelector("button").onclick = () => addBook({
-        title,
-        authors,
-        thumbnail
-      });
-
+      div.querySelector("button").onclick = () => {
+        console.log("ADD BUTTON CLICKED", title);
+        addBook({ title, authors, thumbnail });
+      };
+      
       results.appendChild(div);
     });
   }
+   
 
     async function addBook(book) {
       await fetch("/api/addBook", {
