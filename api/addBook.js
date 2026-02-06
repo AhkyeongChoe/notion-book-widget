@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // POST만 허용
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -6,7 +7,12 @@ export default async function handler(req, res) {
   try {
     const book = req.body;
 
-    const notionRes = await fetch("https://api.notion.com/v1/pages", {
+    // 기본 방어
+    if (!book || !book.title) {
+      return res.status(400).json({ error: "Invalid book data" });
+    }
+
+    const notionResponse = await fetch("https://api.notion.com/v1/pages", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
@@ -17,7 +23,9 @@ export default async function handler(req, res) {
         parent: {
           database_id: process.env.DATABASE_ID
         },
+
         properties: {
+          // 노션 DB의 Title 속성 이름과 반드시 동일해야 함
           Name: {
             title: [
               {
@@ -27,6 +35,7 @@ export default async function handler(req, res) {
               }
             ]
           },
+
           Authors: {
             rich_text: [
               {
@@ -36,6 +45,7 @@ export default async function handler(req, res) {
               }
             ]
           },
+
           Publisher: {
             rich_text: [
               {
@@ -45,6 +55,7 @@ export default async function handler(req, res) {
               }
             ]
           },
+
           Published: {
             rich_text: [
               {
@@ -55,6 +66,8 @@ export default async function handler(req, res) {
             ]
           }
         },
+
+        // 페이지 본문에 표지 이미지 추가
         children: book.thumbnail
           ? [
               {
@@ -72,16 +85,21 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await notionRes.json();
+    const data = await notionResponse.json();
 
-    if (!notionRes.ok) {
-      console.error("Notion error:", data);
-      return res.status(notionRes.status).json(data);
+    // Notion API 에러 그대로 전달
+    if (!notionResponse.ok) {
+      console.error("Notion API error:", data);
+      return res.status(notionResponse.status).json(data);
     }
 
-    res.status(200).json({ ok: true, data });
-  } catch (err) {
-    console.error("Server error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    // 프론트에서 쓰기 좋은 응답
+    return res.status(200).json({
+      ok: true,
+      pageId: data.id
+    });
+  } catch (error) {
+    console.error("Server error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
