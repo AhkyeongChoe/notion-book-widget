@@ -95,6 +95,23 @@
       opacity: 1;
     }
 
+    /* 로딩 스피너 */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      margin: 16px auto;
+      border: 2px solid #cfcfcf;
+      border-top-color: #555;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     small {
       display: block;
       margin-top: 10px;
@@ -131,6 +148,10 @@
       searchTimer = setTimeout(search, 400);
     });
 
+    function showLoading() {
+      results.innerHTML = `<div class="spinner"></div>`;
+    }
+
     // ======================
     // Google Books 검색
     // ======================
@@ -142,8 +163,7 @@
         return;
       }
 
-      results.innerHTML =
-        "<p style='font-size:12px;color:#666'>검색 중…</p>";
+      showLoading(); // ⭕ 빙글 도는 로딩 표시
 
       try {
         const res = await fetch(
