@@ -12,69 +12,49 @@
       padding: 12px;
     }
 
-    h2 {
-      font-size: 16px;
-      margin-bottom: 10px;
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
     }
 
     input {
       width: 100%;
       padding: 8px;
       margin-bottom: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 14px;
     }
 
+    /* 카드 */
     .book-card {
+      position: relative;
       display: flex;
       gap: 12px;
       padding: 10px;
       margin-bottom: 8px;
-      border: 1px solid #e5e5e5;
+      border: 1px solid #cfcfcf;
       border-radius: 8px;
-      background: white;
-      transition: background 0.15s ease;
+      background: #ffffff;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
 
     .book-card:hover {
-      background: #f7f7f7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      background: #eeeeee;
     }
 
     .book-cover {
-      position: relative;
       width: 60px;
       flex-shrink: 0;
-      cursor: pointer;
     }
 
     .book-cover img {
       width: 100%;
       border-radius: 4px;
       display: block;
-    }
-
-    /* hover overlay */
-    .book-cover::after {
-      content: "클릭해서 노션에 추가";
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.55);
-      color: white;
-      font-size: 11px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      border-radius: 4px;
-      transition: opacity 0.2s ease;
-      text-align: center;
-      padding: 4px;
-    }
-
-    .book-cover:hover::after {
-      opacity: 1;
     }
 
     .book-info {
@@ -91,145 +71,159 @@
 
     .book-meta {
       font-size: 12px;
-      color: #666;
+      color: #555;
     }
 
-    .hint {
-      font-size: 12px;
-      color: #888;
-      margin-top: 4px;
+    /* Saved 오버레이 */
+    .saved-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
     }
 
-    .container {
-      max-width: 420px;
-      margin: 0 auto;
+    .book-card.saved .saved-overlay {
+      opacity: 1;
     }
 
     small {
       display: block;
       margin-top: 10px;
       font-size: 11px;
-      color: #888;
+      color: #666;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    
+
     <input
       id="query"
       placeholder="책 제목이나 저자 입력"
       autocomplete="off"
     />
-    
+
     <div id="result"></div>
-    
-    <script>
-      // ======================
-      // 자동 검색 (debounce)
-      // ======================
-      const input = document.getElementById("query");
-      const results = document.getElementById("result");
-      let searchTimer = null;
-      
-      input.addEventListener("input", () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(search, 400);
-      });
-
-      // ======================
-      // Google Books 검색
-      // ======================
-      async function search() {
-        const q = input.value.trim();
-        
-        if (q.length < 2) {
-          results.innerHTML = "";
-          return;
-        }
-        
-        results.innerHTML =
-        "<p style='font-size:12px;color:#888'>검색 중…</p>";
-
-        try {
-          const res = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
-              q
-            )}&maxResults=10`
-          );
-          const data = await res.json();
-
-          results.innerHTML = "";
-          
-          if (!data.items) {
-            results.innerHTML =
-            "<p style='font-size:12px;color:#888'>검색 결과가 없습니다.</p>";
-            return;
-          }
-          
-          data.items.forEach(item => {
-            const book = item.volumeInfo;
-            
-            const title = book.title || "제목 없음";
-            const authors = book.authors?.join(", ") || "저자 정보 없음";
-            const publisher = book.publisher || "출판사 정보 없음";
-            const publishedDate = book.publishedDate || "";          const thumbnail = book.imageLinks?.thumbnail || "";
-
-            const card = document.createElement("div");
-            card.className = "book-card";
-
-            card.innerHTML = `
-            <div class="book-cover">
-              ${thumbnail ? `<img src="${thumbnail}" />` : ""}
-              </div>
-              <div class="book-info">
-                <div class="book-title">${title}</div>
-                <div class="book-meta">${authors}</div>
-                <div class="book-meta">${publisher} · ${publishedDate}</div>
-                </div>
-                `;
-                
-                // 표지 클릭 → 노션에 자동 추가
-                card.querySelector(".book-cover").onclick = () => {
-                  addBook({
-                    title,
-                    authors,
-                    publisher,
-                    publishedDate,
-                    thumbnail
-                  });
-                };
-
-            results.appendChild(card);
-          });
-        } catch (e) {
-          console.error(e);
-          results.innerHTML =
-          "<p style='font-size:12px;color:#888'>검색 중 오류가 발생했어요.</p>";
-        }
-      }
-      
-      // ======================
-      // Notion에 추가
-      // ======================
-      async function addBook(book) {
-        const res = await fetch("/api/addBook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(book)
-        });
-        
-        if (!res.ok) {
-          alert("노션 추가 실패");
-          return;
-        }
-        
-        alert("노션에 추가됨!");
-      }
-      </script>
 
     <small>Powered by Google Books</small>
   </div>
+
+  <script>
+    // ======================
+    // 자동 검색 (debounce)
+    // ======================
+    const input = document.getElementById("query");
+    const results = document.getElementById("result");
+    let searchTimer = null;
+
+    input.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(search, 400);
+    });
+
+    // ======================
+    // Google Books 검색
+    // ======================
+    async function search() {
+      const q = input.value.trim();
+
+      if (q.length < 2) {
+        results.innerHTML = "";
+        return;
+      }
+
+      results.innerHTML =
+        "<p style='font-size:12px;color:#666'>검색 중…</p>";
+
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+            q
+          )}&maxResults=10`
+        );
+        const data = await res.json();
+
+        results.innerHTML = "";
+
+        if (!data.items) {
+          results.innerHTML =
+            "<p style='font-size:12px;color:#666'>검색 결과가 없습니다.</p>";
+          return;
+        }
+
+        data.items.forEach(item => {
+          const book = item.volumeInfo;
+
+          const title = book.title || "제목 없음";
+          const authors = book.authors?.join(", ") || "저자 정보 없음";
+          const publisher = book.publisher || "출판사 정보 없음";
+          const publishedDate = book.publishedDate || "";
+          const thumbnail = book.imageLinks?.thumbnail || "";
+
+          const card = document.createElement("div");
+          card.className = "book-card";
+
+          card.innerHTML = `
+            <div class="book-cover">
+              ${thumbnail ? `<img src="${thumbnail}" />` : ""}
+            </div>
+            <div class="book-info">
+              <div class="book-title">${title}</div>
+              <div class="book-meta">${authors}</div>
+              <div class="book-meta">${publisher} · ${publishedDate}</div>
+            </div>
+            <div class="saved-overlay">Saved</div>
+          `;
+
+          card.onclick = async () => {
+            if (card.classList.contains("saved")) return;
+
+            card.classList.add("saved");
+
+            try {
+              const res = await fetch("/api/addBook", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  title,
+                  authors,
+                  publisher,
+                  publishedDate,
+                  thumbnail
+                })
+              });
+
+              if (!res.ok) {
+                card.classList.remove("saved");
+                return;
+              }
+
+              setTimeout(() => {
+                card.classList.remove("saved");
+              }, 800);
+            } catch {
+              card.classList.remove("saved");
+            }
+          };
+
+          results.appendChild(card);
+        });
+      } catch (e) {
+        console.error(e);
+        results.innerHTML =
+          "<p style='font-size:12px;color:#666'>검색 중 오류가 발생했어요.</p>";
+      }
+    }
+  </script>
 </body>
 </html>
