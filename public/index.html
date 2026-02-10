@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Notion Book Widget</title>
@@ -12,7 +12,7 @@
       padding: 12px;
     }
 
-    /* 위젯 전체 */
+    /* Widget container */
     .widget {
       max-width: 420px;
       margin: 0 auto;
@@ -21,7 +21,7 @@
       padding: 10px;
     }
 
-    /* 검색 input도 카드처럼 */
+    /* Search input styled like a card */
     .search-box {
       width: 100%;
       padding: 10px;
@@ -44,7 +44,6 @@
       gap: 6px;
     }
 
-    /* 카드 */
     .book-card {
       position: relative;
       display: flex;
@@ -109,7 +108,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Saved 오버레이 */
     .saved-overlay {
       position: absolute;
       inset: 0;
@@ -130,7 +128,6 @@
       opacity: 1;
     }
 
-    /* 로딩 스피너 */
     .spinner {
       width: 20px;
       height: 20px;
@@ -207,16 +204,16 @@
 
         if (!data.items) {
           results.innerHTML =
-            "<p style='font-size:12px;color:#777'>검색 결과가 없습니다.</p>";
+            "<p style='font-size:12px;color:#777'>No results found.</p>";
           return;
         }
 
         data.items.forEach(item => {
           const book = item.volumeInfo;
 
-          const title = book.title || "제목 없음";
-          const authors = book.authors?.join(", ") || "저자 정보 없음";
-          const publisher = book.publisher || "출판사 정보 없음";
+          const title = book.title || "";
+          const authors = book.authors?.join(", ") || "";
+          const publisher = book.publisher || "";
           const publishedDate = book.publishedDate || "";
           const thumbnail = book.imageLinks?.thumbnail || "";
 
@@ -275,7 +272,7 @@
       } catch (e) {
         console.error(e);
         results.innerHTML =
-          "<p style='font-size:12px;color:#777'>검색 중 오류가 발생했어요.</p>";
+          "<p style='font-size:12px;color:#777'>An error occurred while searching.</p>";
       }
     }
   </script>
