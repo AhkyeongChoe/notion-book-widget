@@ -1,8 +1,10 @@
 # Notion Book Search Widget
 
 A Notion widget designed for book lovers, allowing you to search books and add them directly to your Notion database.
+
 Book data is provided by Google Books.
 
+https://github.com/user-attachments/assets/b691121b-698c-4bcd-aa33-0e1e26c4db91
 
 ## Environment Variables
 
