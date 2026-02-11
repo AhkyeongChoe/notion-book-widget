@@ -215,7 +215,11 @@
           const authors = book.authors?.join(", ") || "";
           const publisher = book.publisher || "";
           const publishedDate = book.publishedDate || "";
-          const thumbnail = book.imageLinks?.thumbnail || "";
+          let thumbnail = book.imageLinks?.thumbnail || "";
+
+          if (thumbnail) {
+            thumbnail = thumbnail.replace("http://", "https://");
+          }
 
           const card = document.createElement("div");
           card.className = "book-card";
@@ -224,7 +228,7 @@
             <div class="book-cover">
               ${
                 thumbnail
-                  ? `<img src="${thumbnail}" />`
+                  ? `<img src="${thumbnail}" onerror="this.style.display='none'; this.parentElement.innerHTML='No Image';" />`
                   : `<span>No Image</span>`
               }
             </div>
