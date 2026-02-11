@@ -12,7 +12,6 @@
       padding: 12px;
     }
 
-    /* Widget container */
     .widget {
       max-width: 420px;
       margin: 0 auto;
@@ -21,7 +20,6 @@
       padding: 10px;
     }
 
-    /* Search input styled like a card */
     .search-box {
       width: 100%;
       padding: 10px;
@@ -74,6 +72,8 @@
       font-size: 11px;
       color: #999;
       overflow: hidden;
+      text-align: center;
+      padding: 4px;
     }
 
     .book-cover img {
@@ -194,9 +194,7 @@
 
       try {
         const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
-            q
-          )}&maxResults=10`
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10`
         );
         const data = await res.json();
 
@@ -215,22 +213,34 @@
           const authors = book.authors?.join(", ") || "";
           const publisher = book.publisher || "";
           const publishedDate = book.publishedDate || "";
-          let thumbnail = book.imageLinks?.thumbnail || "";
+
+          // 🔥 More stable thumbnail handling
+          let thumbnail =
+            book.imageLinks?.smallThumbnail ||
+            book.imageLinks?.thumbnail ||
+            "";
 
           if (thumbnail) {
-            thumbnail = thumbnail.replace("http://", "https://");
+            thumbnail = thumbnail
+              .replace("http://", "https://")
+              .replace("&edge=curl", "")
+              .replace("&zoom=1", "&zoom=2");
           }
+
+          const imageHTML = thumbnail
+            ? `<img 
+                src="${thumbnail}" 
+                referrerpolicy="no-referrer"
+                onerror="this.style.display='none'; this.parentElement.innerHTML='No Image';"
+              />`
+            : `<span>No Image</span>`;
 
           const card = document.createElement("div");
           card.className = "book-card";
 
           card.innerHTML = `
             <div class="book-cover">
-              ${
-                thumbnail
-                  ? `<img src="${thumbnail}" onerror="this.style.display='none'; this.parentElement.innerHTML='No Image';" />`
-                  : `<span>No Image</span>`
-              }
+              ${imageHTML}
             </div>
             <div class="book-info">
               <div class="book-title">${title}</div>
