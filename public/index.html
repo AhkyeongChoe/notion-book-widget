@@ -182,6 +182,15 @@
       results.innerHTML = `<div class="spinner"></div>`;
     }
 
+    function escapeHtml(str = "") {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
     async function search() {
       const q = input.value.trim();
 
@@ -193,28 +202,34 @@
       showLoading();
 
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10`
-        );
+        const res = await fetch(`/api/searchBooks?q=${encodeURIComponent(q)}`);
         const data = await res.json();
 
         results.innerHTML = "";
 
-        if (!data.items) {
+        if (!res.ok) {
+          const message =
+            data?.error?.message ||
+            data?.error ||
+            "Search request failed.";
+          results.innerHTML = `<p style="font-size:12px;color:#c00">${escapeHtml(message)}</p>`;
+          return;
+        }
+
+        if (!data.items || data.items.length === 0) {
           results.innerHTML =
             "<p style='font-size:12px;color:#777'>No results found.</p>";
           return;
         }
 
         data.items.forEach(item => {
-          const book = item.volumeInfo;
+          const book = item.volumeInfo || {};
 
           const title = book.title || "";
           const authors = book.authors?.join(", ") || "";
           const publisher = book.publisher || "";
           const publishedDate = book.publishedDate || "";
 
-          // 🔥 More stable thumbnail handling
           let thumbnail =
             book.imageLinks?.smallThumbnail ||
             book.imageLinks?.thumbnail ||
@@ -229,7 +244,7 @@
 
           const imageHTML = thumbnail
             ? `<img 
-                src="${thumbnail}" 
+                src="${escapeHtml(thumbnail)}" 
                 referrerpolicy="no-referrer"
                 onerror="this.style.display='none'; this.parentElement.innerHTML='No Image';"
               />`
@@ -243,9 +258,9 @@
               ${imageHTML}
             </div>
             <div class="book-info">
-              <div class="book-title">${title}</div>
-              <div class="book-meta">${authors}</div>
-              <div class="book-meta">${publisher} · ${publishedDate}</div>
+              <div class="book-title">${escapeHtml(title)}</div>
+              <div class="book-meta">${escapeHtml(authors)}</div>
+              <div class="book-meta">${escapeHtml(publisher)} · ${escapeHtml(publishedDate)}</div>
             </div>
             <div class="saved-overlay">✔ Saved</div>
           `;
@@ -256,7 +271,7 @@
             card.classList.add("saved");
 
             try {
-              const res = await fetch("/api/addBook", {
+              const saveRes = await fetch("/api/addBook", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -268,7 +283,10 @@
                 })
               });
 
-              if (!res.ok) {
+              const saveData = await saveRes.json().catch(() => ({}));
+
+              if (!saveRes.ok) {
+                console.error("addBook failed:", saveData);
                 card.classList.remove("saved");
                 return;
               }
@@ -276,7 +294,8 @@
               setTimeout(() => {
                 card.classList.remove("saved");
               }, 800);
-            } catch {
+            } catch (err) {
+              console.error("addBook error:", err);
               card.classList.remove("saved");
             }
           };
