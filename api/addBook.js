@@ -64,16 +64,16 @@ export default async function handler(req, res) {
               }
             ]
           },
-
-          Published: {
-            rich_text: [
-              {
-                text: {
-                  content: book.publishedDate || ""
+          // 🔥 여기만 변경
+          Published: book.publishedDate
+            ? {
+                date: {
+                  start: book.publishedDate
                 }
               }
-            ]
-          }
+            : {
+                date: null
+              }
         },
 
         // 페이지 본문에 표지 이미지 추가
