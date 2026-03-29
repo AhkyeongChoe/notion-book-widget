@@ -25,7 +25,6 @@ export default async function handler(req, res) {
         },
 
         properties: {
-          // 노션 DB의 Title 속성 이름과 반드시 동일해야 함
           Name: {
             title: [
               {
@@ -41,6 +40,16 @@ export default async function handler(req, res) {
               {
                 text: {
                   content: book.authors || ""
+                }
+              }
+            ]
+          },
+
+          Translators: {
+            rich_text: [
+              {
+                text: {
+                  content: book.translators || ""
                 }
               }
             ]

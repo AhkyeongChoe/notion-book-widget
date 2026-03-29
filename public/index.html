@@ -244,6 +244,7 @@
 
         data.documents.forEach(book => {
           const title = book.title || "Untitled";
+
           const authorNames = Array.isArray(book.authors)
             ? book.authors.filter(Boolean)
             : [];
@@ -252,10 +253,14 @@
             ? book.translators.filter(Boolean)
             : [];
 
-          const authors = [
-            authorNames.join(", "),
-            ...translatorNames.map(name => `(${name} 번역)`)
+          const authors = authorNames.join(", ");
+          const translators = translatorNames.join(", ");
+
+          const displayAuthors = [
+            authors,
+            ...translatorNames.map(name => `(${name})`)
           ].filter(Boolean).join(" ");
+
           const publisher = book.publisher || "";
           const publishedDate = formatDate(book.datetime);
           const thumbnail = book.thumbnail || "";
@@ -278,7 +283,7 @@
             </div>
             <div class="book-info">
               <div class="book-title">${escapeHtml(title)}</div>
-              <div class="book-meta">${escapeHtml(authors)}</div>
+              <div class="book-meta">${escapeHtml(displayAuthors)}</div>
               <div class="book-meta">${escapeHtml(publisher)}${publisher && publishedDate ? " · " : ""}${escapeHtml(publishedDate)}</div>
             </div>
             <div class="saved-overlay">✔ Saved</div>
@@ -296,6 +301,7 @@
                 body: JSON.stringify({
                   title,
                   authors,
+                  translators,
                   publisher,
                   publishedDate,
                   thumbnail,
