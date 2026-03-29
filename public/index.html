@@ -88,6 +88,7 @@
       flex-direction: column;
       gap: 4px;
       min-width: 0;
+      flex: 1;
     }
 
     .book-title {
@@ -98,6 +99,7 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      word-break: break-word;
     }
 
     .book-meta {
@@ -144,6 +146,13 @@
       }
     }
 
+    .message {
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+      padding: 10px 4px;
+    }
+
     small {
       display: block;
       margin-top: 10px;
@@ -172,6 +181,7 @@
     const input = document.getElementById("query");
     const results = document.getElementById("result");
     let searchTimer = null;
+    let latestQuery = "";
 
     input.addEventListener("input", () => {
       clearTimeout(searchTimer);
@@ -183,7 +193,7 @@
     }
 
     function escapeHtml(str = "") {
-      return str
+      return String(str)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
@@ -191,8 +201,13 @@
         .replaceAll("'", "&#39;");
     }
 
+    function showMessage(text) {
+      results.innerHTML = `<div class="message">${escapeHtml(text)}</div>`;
+    }
+
     async function search() {
       const q = input.value.trim();
+      latestQuery = q;
 
       if (q.length < 2) {
         results.innerHTML = "";
@@ -202,49 +217,46 @@
       showLoading();
 
       try {
-        const res = await fetch(`/api/searchBooks?q=${encodeURIComponent(q)}`);
+        const res = await fetch(
+          `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10`
+        );
+
         const data = await res.json();
+
+        if (latestQuery !== q) return;
 
         results.innerHTML = "";
 
         if (!res.ok) {
-          const message =
-            data?.error?.message ||
-            data?.error ||
-            "Search request failed.";
-          results.innerHTML = `<p style="font-size:12px;color:#c00">${escapeHtml(message)}</p>`;
+          showMessage("Search failed.");
           return;
         }
 
-        if (!data.items || data.items.length === 0) {
-          results.innerHTML =
-            "<p style='font-size:12px;color:#777'>No results found.</p>";
+        if (!data.docs || data.docs.length === 0) {
+          showMessage("No results found.");
           return;
         }
 
-        data.items.forEach(item => {
-          const book = item.volumeInfo || {};
+        data.docs.forEach(book => {
+          const title = book.title || "Untitled";
+          const authors = Array.isArray(book.author_name)
+            ? book.author_name.join(", ")
+            : "";
+          const publisher = Array.isArray(book.publisher)
+            ? book.publisher[0]
+            : "";
+          const publishedDate = book.first_publish_year
+            ? String(book.first_publish_year)
+            : "";
 
-          const title = book.title || "";
-          const authors = book.authors?.join(", ") || "";
-          const publisher = book.publisher || "";
-          const publishedDate = book.publishedDate || "";
-
-          let thumbnail =
-            book.imageLinks?.smallThumbnail ||
-            book.imageLinks?.thumbnail ||
-            "";
-
-          if (thumbnail) {
-            thumbnail = thumbnail
-              .replace("http://", "https://")
-              .replace("&edge=curl", "")
-              .replace("&zoom=1", "&zoom=2");
+          let thumbnail = "";
+          if (book.cover_i) {
+            thumbnail = `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
           }
 
           const imageHTML = thumbnail
-            ? `<img 
-                src="${escapeHtml(thumbnail)}" 
+            ? `<img
+                src="${escapeHtml(thumbnail)}"
                 referrerpolicy="no-referrer"
                 onerror="this.style.display='none'; this.parentElement.innerHTML='No Image';"
               />`
@@ -260,7 +272,7 @@
             <div class="book-info">
               <div class="book-title">${escapeHtml(title)}</div>
               <div class="book-meta">${escapeHtml(authors)}</div>
-              <div class="book-meta">${escapeHtml(publisher)} · ${escapeHtml(publishedDate)}</div>
+              <div class="book-meta">${escapeHtml(publisher)}${publisher && publishedDate ? " · " : ""}${escapeHtml(publishedDate)}</div>
             </div>
             <div class="saved-overlay">✔ Saved</div>
           `;
@@ -271,7 +283,7 @@
             card.classList.add("saved");
 
             try {
-              const saveRes = await fetch("/api/addBook", {
+              const res = await fetch("/api/addBook", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -283,10 +295,9 @@
                 })
               });
 
-              const saveData = await saveRes.json().catch(() => ({}));
-
-              if (!saveRes.ok) {
-                console.error("addBook failed:", saveData);
+              if (!res.ok) {
+                const errorText = await res.text().catch(() => "");
+                console.error("addBook failed:", res.status, errorText);
                 card.classList.remove("saved");
                 return;
               }
@@ -294,18 +305,19 @@
               setTimeout(() => {
                 card.classList.remove("saved");
               }, 800);
-            } catch (err) {
-              console.error("addBook error:", err);
+            } catch (error) {
+              console.error("addBook error:", error);
               card.classList.remove("saved");
             }
           };
 
           results.appendChild(card);
         });
-      } catch (e) {
-        console.error(e);
-        results.innerHTML =
-          "<p style='font-size:12px;color:#777'>An error occurred while searching.</p>";
+      } catch (error) {
+        console.error(error);
+        if (latestQuery === q) {
+          showMessage("An error occurred while searching.");
+        }
       }
     }
   </script>
