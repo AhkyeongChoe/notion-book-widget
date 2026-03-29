@@ -194,15 +194,22 @@
 
     function escapeHtml(str = "") {
       return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function showMessage(text) {
       results.innerHTML = `<div class="message">${escapeHtml(text)}</div>`;
+    }
+
+    function formatDate(datetime = "") {
+      if (!datetime) return "";
+      const date = new Date(datetime);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toISOString().slice(0, 10);
     }
 
     async function search() {
@@ -217,10 +224,7 @@
       showLoading();
 
       try {
-        const res = await fetch(
-          `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10`
-        );
-
+        const res = await fetch(`/api/searchBooks?q=${encodeURIComponent(q)}`);
         const data = await res.json();
 
         if (latestQuery !== q) return;
@@ -228,31 +232,25 @@
         results.innerHTML = "";
 
         if (!res.ok) {
-          showMessage("Search failed.");
+          console.error("searchBooks failed:", data);
+          showMessage(data.error || "Search failed.");
           return;
         }
 
-        if (!data.docs || data.docs.length === 0) {
+        if (!data.documents || data.documents.length === 0) {
           showMessage("No results found.");
           return;
         }
 
-        data.docs.forEach(book => {
+        data.documents.forEach(book => {
           const title = book.title || "Untitled";
-          const authors = Array.isArray(book.author_name)
-            ? book.author_name.join(", ")
+          const authors = Array.isArray(book.authors)
+            ? book.authors.join(", ")
             : "";
-          const publisher = Array.isArray(book.publisher)
-            ? book.publisher[0]
-            : "";
-          const publishedDate = book.first_publish_year
-            ? String(book.first_publish_year)
-            : "";
-
-          let thumbnail = "";
-          if (book.cover_i) {
-            thumbnail = `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
-          }
+          const publisher = book.publisher || "";
+          const publishedDate = formatDate(book.datetime);
+          const thumbnail = book.thumbnail || "";
+          const isbn = book.isbn || "";
 
           const imageHTML = thumbnail
             ? `<img
@@ -283,7 +281,7 @@
             card.classList.add("saved");
 
             try {
-              const res = await fetch("/api/addBook", {
+              const saveRes = await fetch("/api/addBook", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -291,13 +289,15 @@
                   authors,
                   publisher,
                   publishedDate,
-                  thumbnail
+                  thumbnail,
+                  isbn
                 })
               });
 
-              if (!res.ok) {
-                const errorText = await res.text().catch(() => "");
-                console.error("addBook failed:", res.status, errorText);
+              const saveText = await saveRes.text().catch(() => "");
+
+              if (!saveRes.ok) {
+                console.error("addBook failed:", saveRes.status, saveText);
                 card.classList.remove("saved");
                 return;
               }
@@ -314,7 +314,7 @@
           results.appendChild(card);
         });
       } catch (error) {
-        console.error(error);
+        console.error("search error:", error);
         if (latestQuery === q) {
           showMessage("An error occurred while searching.");
         }
