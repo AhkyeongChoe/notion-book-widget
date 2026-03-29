@@ -244,9 +244,18 @@
 
         data.documents.forEach(book => {
           const title = book.title || "Untitled";
-          const authors = Array.isArray(book.authors)
-            ? book.authors.join(", ")
-            : "";
+          const authorNames = Array.isArray(book.authors)
+            ? book.authors.filter(Boolean)
+            : [];
+
+          const translatorNames = Array.isArray(book.translators)
+            ? book.translators.filter(Boolean)
+            : [];
+
+          const authors = [
+            authorNames.join(", "),
+            ...translatorNames.map(name => `(${name} 번역)`)
+          ].filter(Boolean).join(" ");
           const publisher = book.publisher || "";
           const publishedDate = formatDate(book.datetime);
           const thumbnail = book.thumbnail || "";
