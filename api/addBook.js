@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // POST만 허용
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -7,34 +6,81 @@ export default async function handler(req, res) {
   try {
     const book = req.body;
 
-    // 기본 방어
     if (!book || !book.title) {
       return res.status(400).json({ error: "Invalid book data" });
     }
 
+    const notionHeaders = {
+      Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
+    };
+
+    const normalize = (value = "") => String(value).trim().toLowerCase();
+    const title = book.title || "";
+    const authors = book.authors || "";
+    const publisher = book.publisher || "";
+
+    const duplicateCheckResponse = await fetch(
+      `https://api.notion.com/v1/databases/${process.env.DATABASE_ID}/query`,
+      {
+        method: "POST",
+        headers: notionHeaders,
+        body: JSON.stringify({
+          filter: {
+            property: "Name",
+            title: {
+              equals: title
+            }
+          },
+          page_size: 20
+        })
+      }
+    );
+
+    const duplicateCheckData = await duplicateCheckResponse.json();
+
+    if (!duplicateCheckResponse.ok) {
+      console.error("Notion query error:", duplicateCheckData);
+      return res.status(duplicateCheckResponse.status).json(duplicateCheckData);
+    }
+
+    const isDuplicate = (duplicateCheckData.results || []).some((page) => {
+      const props = page.properties || {};
+      const existingTitle = (props.Name?.title || []).map((item) => item.plain_text || "").join("");
+      const existingAuthors = (props.Authors?.rich_text || []).map((item) => item.plain_text || "").join("");
+      const existingPublisher = (props.Publisher?.rich_text || []).map((item) => item.plain_text || "").join("");
+
+      return (
+        normalize(existingTitle) === normalize(title) &&
+        normalize(existingAuthors) === normalize(authors) &&
+        normalize(existingPublisher) === normalize(publisher)
+      );
+    });
+
+    if (isDuplicate) {
+      return res.status(409).json({
+        error: "Already added"
+      });
+    }
+
     const notionResponse = await fetch("https://api.notion.com/v1/pages", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
+      headers: notionHeaders,
       body: JSON.stringify({
         parent: {
           database_id: process.env.DATABASE_ID
         },
-
         properties: {
           Name: {
             title: [
               {
                 text: {
-                  content: book.title || "제목 없음"
+                  content: book.title || "?쒕ぉ ?놁쓬"
                 }
               }
             ]
           },
-
           Authors: {
             rich_text: [
               {
@@ -44,7 +90,6 @@ export default async function handler(req, res) {
               }
             ]
           },
-
           Publisher: {
             rich_text: [
               {
@@ -54,7 +99,6 @@ export default async function handler(req, res) {
               }
             ]
           },
-          // 🔥 여기만 변경
           Published: book.publishedDate
             ? {
                 date: {
@@ -65,8 +109,6 @@ export default async function handler(req, res) {
                 date: null
               }
         },
-
-        // 페이지 본문에 표지 이미지 추가
         children: book.thumbnail
           ? [
               {
@@ -86,13 +128,11 @@ export default async function handler(req, res) {
 
     const data = await notionResponse.json();
 
-    // Notion API 에러 그대로 전달
     if (!notionResponse.ok) {
       console.error("Notion API error:", data);
       return res.status(notionResponse.status).json(data);
     }
 
-    // 프론트에서 쓰기 좋은 응답
     return res.status(200).json({
       ok: true,
       pageId: data.id

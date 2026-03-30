@@ -337,6 +337,17 @@
               const saveText = await saveRes.text().catch(() => "");
 
               if (!saveRes.ok) {
+                if (saveRes.status === 409) {
+                  card.classList.remove("saving");
+                  overlay.textContent = "Already added";
+                  card.classList.add("saved");
+                  setTimeout(() => {
+                    card.classList.remove("saved");
+                    overlay.innerHTML = "";
+                  }, 1000);
+                  return;
+                }
+
                 console.error("addBook failed:", saveRes.status, saveText);
                 card.classList.remove("saving");
                 overlay.innerHTML = "";
