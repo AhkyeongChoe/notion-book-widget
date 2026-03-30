@@ -60,6 +60,10 @@
       background: #f7f7f7;
     }
 
+    .book-card.saving {
+      pointer-events: none;
+    }
+
     .book-cover {
       width: 60px;
       height: 84px;
@@ -116,6 +120,8 @@
       background: rgba(255, 255, 255, 0.9);
       border-radius: 8px;
       display: flex;
+      flex-direction: column;
+      gap: 8px;
       align-items: center;
       justify-content: center;
       font-size: 14px;
@@ -128,6 +134,20 @@
 
     .book-card.saved .saved-overlay {
       opacity: 1;
+    }
+
+    .book-card.saving .saved-overlay {
+      opacity: 1;
+      color: #555;
+    }
+
+    .overlay-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #d0d0d0;
+      border-top-color: #555;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
     .spinner {
@@ -286,13 +306,18 @@
               <div class="book-meta">${escapeHtml(displayAuthors)}</div>
               <div class="book-meta">${escapeHtml(publisher)}${publisher && publishedDate ? " · " : ""}${escapeHtml(publishedDate)}</div>
             </div>
-            <div class="saved-overlay">✔ Saved</div>
+            <div class="saved-overlay"></div>
           `;
 
           card.onclick = async () => {
-            if (card.classList.contains("saved")) return;
+            if (card.classList.contains("saved") || card.classList.contains("saving")) return;
 
-            card.classList.add("saved");
+            const overlay = card.querySelector(".saved-overlay");
+            overlay.innerHTML = `
+              <div class="overlay-spinner"></div>
+              <div>Saving...</div>
+            `;
+            card.classList.add("saving");
 
             try {
               const saveRes = await fetch("/api/addBook", {
@@ -313,16 +338,23 @@
 
               if (!saveRes.ok) {
                 console.error("addBook failed:", saveRes.status, saveText);
-                card.classList.remove("saved");
+                card.classList.remove("saving");
+                overlay.innerHTML = "";
                 return;
               }
 
+              card.classList.remove("saving");
+              overlay.textContent = "Saved";
+              card.classList.add("saved");
+
               setTimeout(() => {
                 card.classList.remove("saved");
+                overlay.innerHTML = "";
               }, 800);
             } catch (error) {
               console.error("addBook error:", error);
-              card.classList.remove("saved");
+              card.classList.remove("saving");
+              overlay.innerHTML = "";
             }
           };
 
