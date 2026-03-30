@@ -45,16 +45,6 @@ export default async function handler(req, res) {
             ]
           },
 
-          Translators: {
-            rich_text: [
-              {
-                text: {
-                  content: book.translators || ""
-                }
-              }
-            ]
-          },
-
           Publisher: {
             rich_text: [
               {
